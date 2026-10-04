@@ -79,19 +79,19 @@ $$r_{i,t} = \ln\left(\frac{P_{i,t}}{P_{i,t-1}}\right)$$
 
 Portfolio P&L under scenario $t$:
 
-$$\text{P\&L}_t = \sum_i w_i \cdot N \cdot \left(e^{r_{i,t}} - 1\right)$$
+$$\mathrm{PnL}_t = \sum_i w_i \cdot N \cdot \left(e^{r_{i,t}} - 1\right)$$
 
 where $w_i$ is the weight and $N$ is the portfolio notional.
 
 ### 2. Value at Risk (99%)
 
-$$\text{VaR}_{99} = -Q_{0.01}\left(\text{P\&L distribution}\right)$$
+$$\text{VaR}_{99} = -Q_{0.01}\left(\mathrm{PnL}\right)$$
 
 VaR is expressed as a **positive loss amount**.
 
 ### 3. Expected Shortfall (99%)
 
-$$\text{ES}_{99} = -\mathbb{E}\left[\text{P\&L} \mid \text{P\&L} \leq Q_{0.01}\right]$$
+$$\text{ES}_{99} = -\mathbb{E}\left[\mathrm{PnL} \mid \mathrm{PnL} \leq Q_{0.01}\right]$$
 
 ES is the average loss in the worst 1% of scenarios.
 
