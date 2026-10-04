@@ -293,6 +293,3 @@ If Yahoo Finance is unavailable, the engine falls back to CSV files in `data/raw
 
 ---
 
-## Interview Preparation
-
-See `INTERVIEW_NOTES.md` for answers to common quantitative finance interview questions about this project.
