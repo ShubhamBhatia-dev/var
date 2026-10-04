@@ -1,0 +1,142 @@
+# ============================================================
+# Market Risk Engine - Configuration File
+# ============================================================
+# Edit this file to change portfolio composition, risk parameters,
+# and model settings. No code changes required for basic customization.
+
+# ------------------------------------------------------------
+# PORTFOLIO CONFIGURATION
+# ------------------------------------------------------------
+portfolio:
+  # Total notional value in USD
+  notional: 10_000_000  # $10,000,000
+
+  # Asset weights must sum to 1.0
+  # Format: ticker: weight
+  weights:
+    # Equity (50%)
+    SPY: 0.30     # S&P 500 ETF - large-cap US equity
+    QQQ: 0.20     # Nasdaq-100 ETF - tech-heavy equity
+
+    # FX (25%) - represented as USD-denominated FX spot positions
+    EURUSD: 0.15  # EUR/USD spot
+    GBPUSD: 0.10  # GBP/USD spot
+
+    # Fixed Income (25%) - US Treasury ETFs used as market proxies
+    # Note: ETFs capture duration risk but not individual bond cash flows
+    IEF: 0.15     # iShares 7-10 Year Treasury Bond ETF (intermediate)
+    TLT: 0.10     # iShares 20+ Year Treasury Bond ETF (long duration)
+
+  # Asset class mapping for reporting
+  asset_classes:
+    SPY: Equity
+    QQQ: Equity
+    EURUSD: FX
+    GBPUSD: FX
+    IEF: Fixed Income
+    TLT: Fixed Income
+
+  # Human-readable names
+  asset_names:
+    SPY: "S&P 500 ETF"
+    QQQ: "Nasdaq-100 ETF"
+    EURUSD: "EUR/USD Spot"
+    GBPUSD: "GBP/USD Spot"
+    IEF: "US Treasury 7-10Y ETF"
+    TLT: "US Treasury 20+ Year ETF"
+
+# ------------------------------------------------------------
+# RISK MODEL PARAMETERS
+# ------------------------------------------------------------
+risk:
+  # VaR confidence level (0.99 = 99%)
+  confidence_level: 0.99
+
+  # Historical simulation lookback window (trading days)
+  historical_window: 500
+
+  # Holding period for multi-day VaR (trading days)
+  holding_period: 10
+
+  # Short holding period (for 1-day VaR)
+  short_holding_period: 1
+
+# ------------------------------------------------------------
+# BACKTESTING PARAMETERS
+# ------------------------------------------------------------
+backtesting:
+  # Significance level for Kupiec / Christoffersen tests
+  alpha: 0.05  # 5% significance
+
+  # Minimum observations required before backtesting starts
+  min_observations: 250
+
+# ------------------------------------------------------------
+# VOLATILITY ANALYSIS
+# ------------------------------------------------------------
+volatility:
+  # Rolling window for short-term volatility
+  short_window: 20  # ~1 trading month
+
+  # Rolling window for medium-term volatility
+  long_window: 60   # ~3 trading months
+
+  # Annualization factor (trading days per year)
+  annualization_factor: 252
+
+# ------------------------------------------------------------
+# RESIDUAL RISK ADD-ON (Simplified / Educational)
+# ------------------------------------------------------------
+# This is an educational approximation only.
+# Do NOT interpret this as regulatory capital.
+residual_risk:
+  enabled: true
+
+  # Percentile threshold for "elevated" volatility
+  volatility_threshold_pct: 80  # 80th percentile
+
+  # Multiplier applied to excess volatility
+  addon_multiplier: 2.5
+
+  # Volatility window used for the calculation
+  vol_window: 20  # days
+
+# ------------------------------------------------------------
+# DATA CONFIGURATION
+# ------------------------------------------------------------
+data:
+  # Data start date (YYYY-MM-DD)
+  # Engine will fetch from this date to today
+  start_date: "2018-01-01"
+
+  # Primary data source
+  # Options: "yfinance" (auto-download) or "csv" (use local fallback)
+  source: "yfinance"
+
+  # Fallback CSV directory (used if yfinance download fails)
+  fallback_dir: "data/raw"
+
+  # Yahoo Finance tickers
+  # FX via Yahoo Finance uses =X suffix convention
+  yf_tickers:
+    SPY: "SPY"
+    QQQ: "QQQ"
+    EURUSD: "EURUSD=X"
+    GBPUSD: "GBPUSD=X"
+    IEF: "IEF"
+    TLT: "TLT"
+
+# ------------------------------------------------------------
+# API CONFIGURATION
+# ------------------------------------------------------------
+api:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+
+# ------------------------------------------------------------
+# LOGGING
+# ------------------------------------------------------------
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s | %(name)s | %(levelname)s | %(message)s"

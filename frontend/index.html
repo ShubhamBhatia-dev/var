@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Multi-Asset Market Risk Analytics Engine — Historical Simulation VaR, Expected Shortfall, Backtesting (Kupiec POF, Christoffersen Independence) for a multi-asset portfolio.">
+  <title>Market Risk Engine | Multi-Asset Risk Analytics</title>
+
+  <!-- Favicon placeholder -->
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2300d4ff'/><text x='6' y='23' font-size='18' font-weight='bold' fill='%23000'>R</text></svg>">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/styles.css">
+
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+
+<body>
+
+  <!-- ============================================================
+     LOADING SCREEN
+     Shown while the API fetches data from the Python backend.
+============================================================ -->
+  <div id="loading-screen">
+    <div class="loading-logo"> RISK ENGINE</div>
+    <div class="loading-bar">
+      <div class="loading-bar-fill"></div>
+    </div>
+    <div class="loading-status" id="loading-status">Connecting to risk engine...</div>
+    <div class="loading-sub">Multi-Asset Market Risk Analytics</div>
+  </div>
+
+  <!-- ============================================================
+     MAIN APPLICATION
+     Hidden until data is loaded.
+============================================================ -->
+  <div id="app">
+
+    <!-- ── HEADER ─────────────────────────────────────────── -->
+    <header class="header">
+      <div class="header-logo">
+
+        <span class="header-title">Market Risk Engine</span>
+      </div>
+      <div class="header-divider"></div>
+      <div class="header-meta">
+        <div class="header-meta-item">
+          <span class="header-meta-label">Portfolio</span>
+          <span class="header-meta-value" id="hdr-portfolio">Multi-Asset</span>
+        </div>
+        <div class="header-meta-item">
+          <span class="header-meta-label">Confidence</span>
+          <span class="header-meta-value" id="hdr-confidence">99%</span>
+        </div>
+        <div class="header-meta-item">
+          <span class="header-meta-label">Hist. Window</span>
+          <span class="header-meta-value" id="hdr-window">500D</span>
+        </div>
+        <div class="header-meta-item">
+          <span class="header-meta-label">As of</span>
+          <span class="header-meta-value" id="hdr-date">—</span>
+        </div>
+      </div>
+      <div class="header-status">
+        <div class="status-badge loaded" id="data-status-badge">
+          <span class="status-dot"></span>
+          <span id="data-status-text">Data: Loaded</span>
+        </div>
+        <div class="status-badge active">
+          <span class="status-dot"></span>
+          Model: Active
+        </div>
+      </div>
+    </header>
+
+    <!-- ── NAV TABS ───────────────────────────────────────── -->
+    <nav class="nav-tabs" id="nav-tabs">
+      <button class="nav-tab active" data-tab="overview">Overview</button>
+      <button class="nav-tab" data-tab="pnl-backtest">P&amp;L &amp; Backtesting</button>
+      <button class="nav-tab" data-tab="distribution">Distribution</button>
+      <button class="nav-tab" data-tab="volatility">Volatility</button>
+      <button class="nav-tab" data-tab="portfolio">Portfolio</button>
+      <button class="nav-tab" data-tab="scenarios">Scenarios</button>
+      <button class="nav-tab" data-tab="data-table">Data Table</button>
+    </nav>
+
+    <!-- ── MAIN CONTENT ───────────────────────────────────── -->
+    <main class="main-content">
+
+      <!-- ════════════════════════════════════════════════════
+         TAB: OVERVIEW
+    ═══════════════════════════════════════════════════════ -->
+      <section class="tab-panel active" id="tab-overview">
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi-card" style="--kpi-accent: #4b5e7a;">
+            <div class="kpi-label">Portfolio Value</div>
+            <div class="kpi-value" id="kpi-port-val">—</div>
+            <div class="kpi-sub">Total Notional (USD)</div>
+          </div>
+          <div class="kpi-card cyan">
+            <div class="kpi-label">1D VaR · 99%</div>
+            <div class="kpi-value" id="kpi-var-1d">—</div>
+            <div class="kpi-sub">Historical Simulation</div>
+          </div>
+          <div class="kpi-card violet">
+            <div class="kpi-label">1D ES · 99%</div>
+            <div class="kpi-value" id="kpi-es-1d">—</div>
+            <div class="kpi-sub">Expected Shortfall</div>
+          </div>
+          <div class="kpi-card" style="--kpi-accent: #fb923c;">
+            <div class="kpi-label">10D VaR · 99%</div>
+            <div class="kpi-value" id="kpi-var-10d" style="color: var(--orange);">—</div>
+            <div class="kpi-sub">Overlapping Scenarios</div>
+          </div>
+          <div class="kpi-card" style="--kpi-accent: #f59e0b;">
+            <div class="kpi-label">10D ES · 99%</div>
+            <div class="kpi-value" id="kpi-es-10d" style="color: var(--amber);">—</div>
+            <div class="kpi-sub">10-Day Expected Loss</div>
+          </div>
+          <div class="kpi-card danger">
+            <div class="kpi-label">VaR Exceptions</div>
+            <div class="kpi-value" id="kpi-violations">—</div>
+            <div class="kpi-sub" id="kpi-violations-sub">of — observations</div>
+          </div>
+          <div class="kpi-card" id="kpi-rate-card">
+            <div class="kpi-label">Exception Rate</div>
+            <div class="kpi-value" id="kpi-rate">—</div>
+            <div class="kpi-sub">Target: 1.00%</div>
+          </div>
+        </div>
+
+        <!-- Overview charts: P&L + Distribution side by side -->
+        <div class="section-grid cols-3">
+          <div>
+            <!-- Mini P&L Chart -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div>
+                  <div class="chart-card-title">Historical P&amp;L vs VaR</div>
+                  <div class="chart-card-subtitle">Realized P&amp;L · 99% VaR Threshold</div>
+                </div>
+                <div class="chart-badge" id="pnl-obs-badge">— obs</div>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="overview-pnl-chart" height="160"></canvas>
+              </div>
+            </div>
+
+            <!-- Backtesting summary -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div>
+                  <div class="chart-card-title">Backtesting Summary</div>
+                  <div class="chart-card-subtitle">Kupiec POF · Christoffersen Independence · Conditional Coverage</div>
+                </div>
+              </div>
+              <div class="test-results-grid" id="overview-test-results">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Risk metrics summary table -->
+          <div>
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div>
+                  <div class="chart-card-title">Risk Metrics Summary</div>
+                  <div class="chart-card-subtitle">Current Estimates</div>
+                </div>
+              </div>
+              <table class="risk-table" id="risk-summary-table">
+                <!-- Populated by JS -->
+              </table>
+
+              <!-- Residual Risk Add-On -->
+              <div class="residual-risk-card" id="residual-risk-section">
+                <div class="residual-risk-header">
+                  <span>⚠</span>
+                  <div class="residual-risk-title">Simplified Residual-Risk Add-On</div>
+                </div>
+                <div class="residual-warning">
+                  Educational approximation only. NOT a regulatory capital calculation.
+                  Formula: add-on = k × excess_vol × notional / √252
+                </div>
+                <div class="residual-metrics" id="residual-metrics">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+         TAB: P&L & BACKTESTING
+    ═══════════════════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-pnl-backtest">
+
+        <!-- Main P&L Chart -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Historical P&amp;L vs 1-Day 99% VaR</div>
+              <div class="chart-card-subtitle">
+                Realized portfolio P&amp;L · VaR threshold (positive = gain, negative = loss) ·
+                Red markers = VaR breaches
+              </div>
+            </div>
+            <div class="export-group">
+              <button class="btn btn-outline" onclick="downloadCSV('pnl')">↓ Export P&amp;L CSV</button>
+            </div>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="main-pnl-chart" height="200"></canvas>
+          </div>
+        </div>
+
+        <!-- Backtesting Statistics -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">VaR Backtesting Statistics</div>
+              <div class="chart-card-subtitle">
+                PASS = fail to reject H₀ at α=5% · FAIL = reject H₀ at α=5%
+              </div>
+            </div>
+          </div>
+
+          <div class="backtest-grid" id="backtest-stats-grid">
+            <!-- Populated by JS -->
+          </div>
+
+          <div class="test-results-grid" id="backtest-test-results">
+            <!-- Populated by JS -->
+          </div>
+
+          <div class="info-note mt-8">
+            ℹ PASS means we fail to reject H₀ — insufficient evidence to conclude the model is miscalibrated.
+            FAIL means the observed exception behavior is statistically inconsistent with the model assumption at α=5%.
+            Neither result "proves" the model correct or wrong — these are probabilistic statements.
+          </div>
+        </div>
+
+        <!-- Violation Timeline Chart -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">VaR Exception Timeline</div>
+              <div class="chart-card-subtitle">Blue = normal · Red = VaR breach</div>
+            </div>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="violation-chart" height="120"></canvas>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+         TAB: DISTRIBUTION
+    ═══════════════════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-distribution">
+
+        <div class="section-grid cols-2">
+          <div>
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div>
+                  <div class="chart-card-title">1-Day P&amp;L Distribution</div>
+                  <div class="chart-card-subtitle">
+                    Historical hypothetical P&amp;L · 99% VaR &amp; ES markers
+                  </div>
+                </div>
+                <div class="chart-badge" id="dist-scenarios-badge">— scenarios</div>
+              </div>
+              <div class="chart-canvas-wrapper">
+                <canvas id="dist-chart" height="220"></canvas>
+              </div>
+              <div class="dist-legend">
+                <div class="dist-legend-item">
+                  <div class="dist-legend-dot" style="background:#cbd5e1;"></div>
+                  P&amp;L within VaR
+                </div>
+                <div class="dist-legend-item">
+                  <div class="dist-legend-dot" style="background:rgba(239,68,68,0.6);"></div>
+                  Tail loss region
+                </div>
+                <div class="dist-legend-item">
+                  <div class="dist-legend-dot" style="background:#00d4ff;"></div>
+                  99% VaR line
+                </div>
+                <div class="dist-legend-item">
+                  <div class="dist-legend-dot" style="background:#f59e0b;"></div>
+                  99% ES line
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div>
+                  <div class="chart-card-title">Distribution Statistics</div>
+                  <div class="chart-card-subtitle">Empirical P&amp;L moments and tail metrics</div>
+                </div>
+              </div>
+              <table class="risk-table" id="dist-stats-table">
+                <!-- Populated by JS -->
+              </table>
+            </div>
+
+            <div class="chart-card mt-16">
+              <div class="chart-card-header">
+                <div>
+                  <div class="chart-card-title">10-Day VaR Comparison</div>
+                  <div class="chart-card-subtitle">Overlapping scenarios vs sqrt-of-time approximation</div>
+                </div>
+              </div>
+              <table class="risk-table" id="tenday-comparison-table">
+                <!-- Populated by JS -->
+              </table>
+              <div class="info-note mt-8">
+                The sqrt(10) approximation assumes i.i.d. returns and may underestimate risk
+                during volatile, autocorrelated markets. Overlapping 10-day scenarios are the primary estimate.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+         TAB: VOLATILITY
+    ═══════════════════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-volatility">
+
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Portfolio Rolling Volatility</div>
+              <div class="chart-card-subtitle">
+                Annualized rolling volatility · 20-day and 60-day windows ·
+                Shaded = elevated volatility regime (above 80th percentile)
+              </div>
+            </div>
+            <div class="kpi-card" style="padding: 8px 14px; margin: 0; min-width: 120px;">
+              <div class="kpi-label">Current Vol (20D)</div>
+              <div class="kpi-value" id="current-vol-20d" style="font-size: 1rem;">—</div>
+            </div>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="vol-chart" height="220"></canvas>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+         TAB: PORTFOLIO
+    ═══════════════════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-portfolio">
+
+        <div class="section-grid cols-2">
+          <div>
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div>
+                  <div class="chart-card-title">Portfolio Composition</div>
+                  <div class="chart-card-subtitle">By asset class and individual position</div>
+                </div>
+              </div>
+              <canvas id="donut-chart" height="200"></canvas>
+            </div>
+          </div>
+
+          <div>
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div>
+                  <div class="chart-card-title">Position Detail</div>
+                  <div class="chart-card-subtitle">Weights, values, and risk contributions</div>
+                </div>
+              </div>
+              <div class="data-table-wrapper">
+                <table class="data-table" id="portfolio-detail-table">
+                  <thead>
+                    <tr>
+                      <th>Asset</th>
+                      <th>Class</th>
+                      <th>Weight</th>
+                      <th>Value (USD)</th>
+                      <th>Standalone Vol</th>
+                      <th>Risk Contribution</th>
+                    </tr>
+                  </thead>
+                  <tbody id="portfolio-detail-body">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+         TAB: SCENARIOS
+    ═══════════════════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-scenarios">
+
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Historical Scenario Analysis</div>
+              <div class="chart-card-subtitle">
+                Actual historical events from the dataset applied to the current portfolio.
+                All scenarios are derived from real observed returns.
+              </div>
+            </div>
+          </div>
+          <div class="scenario-grid" id="scenario-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════════════
+         TAB: DATA TABLE
+    ═══════════════════════════════════════════════════════ -->
+      <section class="tab-panel" id="tab-data-table">
+
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-card-title">Backtesting Data Table</div>
+              <div class="chart-card-subtitle">Date · P&amp;L · VaR · ES · Violation · Volatility</div>
+            </div>
+            <div class="export-group">
+              <button class="btn btn-outline" onclick="downloadCSV('pnl')">↓ P&amp;L CSV</button>
+              <button class="btn btn-outline" onclick="downloadCSV('risk')">↓ Risk Report CSV</button>
+            </div>
+          </div>
+
+          <div class="table-toolbar">
+            <input type="text" class="table-search" id="table-search" placeholder="Search date..."
+              oninput="filterTable()">
+            <button class="table-filter-btn active" id="filter-all" onclick="setFilter('all')">All</button>
+            <button class="table-filter-btn" id="filter-violations" onclick="setFilter('violations')">Violations
+              Only</button>
+          </div>
+
+          <div class="data-table-wrapper">
+            <table class="data-table" id="main-data-table">
+              <thead>
+                <tr>
+                  <th onclick="sortTable('date')" id="th-date">Date</th>
+                  <th onclick="sortTable('pnl')" id="th-pnl">P&amp;L (USD)</th>
+                  <th onclick="sortTable('var')" id="th-var">VaR 1D (USD)</th>
+                  <th onclick="sortTable('es')" id="th-es">ES 1D (USD)</th>
+                  <th onclick="sortTable('vol')" id="th-vol">Vol 20D (Ann.)</th>
+                  <th onclick="sortTable('violation')" id="th-violation">Violation</th>
+                </tr>
+              </thead>
+              <tbody id="table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div class="table-pagination">
+            <div class="pagination-info" id="pagination-info">Showing — records</div>
+            <div class="pagination-controls" id="pagination-controls"></div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+  <script src="/static/app.js"></script>
+
+</body>
+
+</html>
